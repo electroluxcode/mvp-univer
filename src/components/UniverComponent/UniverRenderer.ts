@@ -37,6 +37,7 @@ import SheetsZhCN from "@univerjs/sheets/locale/zh-CN"
 import UIZhCN from "@univerjs/ui/locale/zh-CN"
 
 import { UniverWorkerManager } from "./UniverWorkerManager"
+import { transformUniverToExcel } from "./utils-export"
 
 import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
@@ -564,6 +565,34 @@ export class UniverRenderer {
 			console.log("[UniverRenderer] 文件加载完成:", file.name)
 		} catch (error) {
 			console.error("[UniverRenderer] 加载文件失败:", error)
+			throw error
+		}
+	}
+
+	/** 导出 Excel 文件 - 使用 ExcelJS 完整实现 */
+	public async exportToExcel(fileName?: string): Promise<void> {
+		try {
+			// 获取当前工作簿数据（snapshot）
+			const snapshot = this.getWorksheetData()
+			if (!snapshot || !snapshot.sheets) {
+				throw new Error('无法获取工作簿数据')
+			}
+
+
+			// 使用完整的 ExcelJS 实现导出
+			await transformUniverToExcel({
+				snapshot,
+				fileName: fileName || snapshot.name || `${snapshot.name || 'export'}_${new Date().getTime()}.xlsx`,
+				success: () => {
+					console.log('[UniverRenderer] 文件导出成功')
+				},
+				error: (err) => {
+					console.error('[UniverRenderer] 导出失败:', err)
+					throw err
+				}
+			})
+		} catch (error) {
+			console.error('[UniverRenderer] 导出文件失败:', error)
 			throw error
 		}
 	}

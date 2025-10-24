@@ -9,6 +9,7 @@ import "./styles.css"
 
 export interface UniverComponentRef {
 	getWorksheetData: () => Partial<IWorkbookData> | null
+	exportToExcel: (fileName?: string) => Promise<void>
 }
 
 /**  Univer 表格组件 */
@@ -27,6 +28,11 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 	useImperativeHandle(ref, () => ({
 		getWorksheetData: () => {
 			return rendererRef.current?.getWorksheetData() || null
+		},
+		exportToExcel: async (fileName?: string) => {
+			if (rendererRef.current) {
+				await rendererRef.current.exportToExcel(fileName)
+			}
 		}
 	}))
 	useEffect(() => {

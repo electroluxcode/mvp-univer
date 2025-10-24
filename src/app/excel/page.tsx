@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import UniverComponent from '@/components/UniverComponent'
+import type { UniverComponentRef } from '@/components/UniverComponent'
 import type { IWorkbookData } from '@univerjs/core'
 import './style.css'
 import { DEFAULT_DATA } from './data'
@@ -15,6 +16,7 @@ export default function ExcelPlayground() {
   const isFromFileImport = useRef(false)
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const univerRef = useRef<UniverComponentRef>(null)
 
   // JSON 编辑器变化 - 实时应用到预览（防抖）
   const handleJsonChange = useCallback((value: string) => {
@@ -77,6 +79,21 @@ export default function ExcelPlayground() {
     fileInputRef.current?.click()
   }, [])
 
+  // 导出 Excel 文件
+  const handleExportClick = useCallback(() => {
+    try {
+      if (!univerRef.current) {
+        setError('组件未初始化')
+        return
+      }
+      univerRef.current.exportToExcel()
+      setError('')
+    } catch (err) {
+      console.error('导出失败:', err)
+      setError(err instanceof Error ? err.message : '导出失败')
+    }
+  }, [])
+
   return (
     <div className="playground-container">
         {/* 顶部工具栏 */}
@@ -85,6 +102,9 @@ export default function ExcelPlayground() {
           <div className="header-actions">
             <button onClick={handleImportClick} className="import-btn">
               📂 导入 Excel
+            </button>
+            <button onClick={handleExportClick} className="import-btn" style={{ marginLeft: '10px' }}>
+              💾 导出 Excel
             </button>
             <input
               ref={fileInputRef}
@@ -125,6 +145,7 @@ export default function ExcelPlayground() {
             </div>
             <div className="preview-container">
               <UniverComponent
+                ref={univerRef}
                 data={previewData}
                 width="100%"
                 height="100%"

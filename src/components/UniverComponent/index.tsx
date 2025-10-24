@@ -1,14 +1,19 @@
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from "react"
 import { useUnmount, useSafeState, useMount } from "ahooks"
 
 import { UniverRenderer, type UniverRendererConfig } from "./UniverRenderer"
 import type { UniverComponentNewProps } from "./types"
+import type { IWorkbookData } from "@univerjs/core"
 
 import "./styles.css"
 
+export interface UniverComponentRef {
+	getWorksheetData: () => Partial<IWorkbookData> | null
+}
+
 /**  Univer 表格组件 */
-function UniverComponentNew(props: UniverComponentNewProps) {
-	const { data, width = "100%", height = "100%", mode = "readonly" } = props
+const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProps>((props, ref) => {
+	const { data, width = "100%", height = "100%", mode = "readonly", onDataChange } = props
 
 	const [loading, setLoading] = useSafeState(true)
 	const [error, setError] = useSafeState<string | null>(null)
@@ -18,6 +23,31 @@ function UniverComponentNew(props: UniverComponentNewProps) {
 	const isInitializedRef = useRef(false)
 	const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+	// 暴露给父组件的方法
+	useImperativeHandle(ref, () => ({
+		getWorksheetData: () => {
+			return rendererRef.current?.getWorksheetData() || null
+		}
+	}))
+	useEffect(() => {
+		if (!isInitializedRef.current || !rendererRef.current) {
+			return
+		}
+		
+		// 区分文件导入和数据更新
+		if (data instanceof File) {
+			// 文件导入：全量替换
+			rendererRef.current.loadFile(data).catch((error) => {
+				console.error('导入文件失败:', error)
+				setError(error instanceof Error ? error.message : '导入失败')
+			})
+		} else {
+			// JSON 数据更新：增量更新
+			rendererRef.current.updateWorksheetData(data).catch((error) => {
+				console.error('更新数据失败:', error)
+			})
+		}
+	}, [data, setError])
 	/** 清理渲染器实例 */
 	const disposeRenderer = useCallback(() => {
 		if (rendererRef.current && !rendererRef.current.isDisposed()) {
@@ -42,6 +72,7 @@ function UniverComponentNew(props: UniverComponentNewProps) {
 				container: containerRef.current,
 				mode,
 				data,
+				onDataChange,
 			}
 
 			const renderer = new UniverRenderer(config, {
@@ -113,6 +144,7 @@ function UniverComponentNew(props: UniverComponentNewProps) {
 			/>
 		</div>
 	)
-}
+})
+
 
 export default UniverComponentNew

@@ -71,12 +71,17 @@ export class UniverWorkerManager {
 
 	/** 转换数据 */
 	async transformData(
-		data: File,
+		data: File | Partial<IWorkbookData>,
 		fileName?: string,
 		isReadonly?: boolean,
 	): Promise<Partial<IWorkbookData>> {
 		if (this.isDisposed) {
 			throw new Error("WorkerManager has been disposed")
+		}
+		
+		// 如果已经是 JSON 数据，直接返回
+		if (!(data instanceof File)) {
+			return data
 		}
 		if (!this.worker) {
 			throw new Error("Worker not initialized")

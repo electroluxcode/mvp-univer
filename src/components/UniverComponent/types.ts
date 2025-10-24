@@ -11,14 +11,16 @@ export type SizeValue = number | string
 
 /** Univer 组件属性接口 */
 export interface UniverComponentNewProps {
-	/** 要显示的数据 */
-	data: File
+	/** 要显示的数据 - 支持 File 或 JSON 对象 */
+	data: File | Partial<IWorkbookData>
 	/** 组件宽度 */
 	width?: SizeValue
 	/** 组件高度 */
 	height?: SizeValue
 	/** 组件模式 */
 	mode?: ComponentMode
+	/** 数据变化回调 */
+	onDataChange?: (data: Partial<IWorkbookData>) => void
 }
 
 /** Worker 消息类型枚举 */
@@ -32,8 +34,8 @@ export enum TransformWorkerMessageType {
 export interface WorkerRequestPayload {
 	/** 任务 ID */
 	id: string
-	/** 要处理的数据 */
-	data: File
+	/** 要处理的数据 - 支持 File 或 JSON 对象 */
+	data: File | Partial<IWorkbookData>
 	/** 文件名称 */
 	fileName?: string
 	/** 是否为只读模式 */

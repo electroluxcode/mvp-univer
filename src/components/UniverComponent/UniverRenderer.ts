@@ -6,6 +6,8 @@ import {
 	ICommandService,
 	IUniverInstanceService,
 	type Workbook,
+	IWorkbookData,
+	CommandType,
 } from "@univerjs/core"
 import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula"
 import { UniverRenderEnginePlugin } from "@univerjs/engine-render"
@@ -16,6 +18,7 @@ import {
 	WorksheetSetCellStylePermission,
 	WorksheetEditPermission,
 	WorksheetSetColumnStylePermission,
+	SetRangeValuesMutation,
 } from "@univerjs/sheets"
 import { UniverDocsPlugin } from "@univerjs/docs"
 import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui"
@@ -45,7 +48,8 @@ import '@univerjs/sheets-numfmt-ui/lib/index.css'
 export interface UniverRendererConfig {
 	container: HTMLElement
 	mode: "readonly" | "edit"
-	data: File
+	data: File | Partial<IWorkbookData>
+	onDataChange?: (data: Partial<IWorkbookData>) => void
 }
 
 export interface UniverRendererCallbacks {
@@ -134,10 +138,38 @@ export class UniverRenderer {
 
 			// 完成初始化和数据转换后调用回调
 			this.callbacks.onInitialized?.()
+			
+			// 设置编辑监听器
+			this.setupOnDataChangeListener()
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "渲染失败"
 			this.callbacks.onError?.(errorMessage)
 			throw error
+		}
+	}
+
+	/** 设置编辑监听器 */
+	private setupOnDataChangeListener(): void {
+		if (!this.univer || !this.config.onDataChange) return
+
+		let beforeData: string | null = null
+		try {
+			const commandService = this.univer.__getInjector().get(ICommandService)
+			
+			// 监听所有命令执行后的事件
+			commandService.onCommandExecuted((command) => {
+				if (command.type === CommandType.MUTATION) {
+					const data = this.getWorksheetData()
+						const isDataChanged =JSON.stringify(data) !==  beforeData
+						if (data && isDataChanged) {
+							beforeData = JSON.stringify(data)
+							this.config.onDataChange?.(data)
+						}
+				}
+			
+			})
+		} catch (error) {
+			console.warn("[UniverRenderer] 设置编辑监听器失败:", error)
 		}
 	}
 
@@ -394,12 +426,39 @@ export class UniverRenderer {
 
 	/** 提取文件名 */
 	private extractFileName(): string {
-		return this.config.data.name || "未命名文件"
+		if (this.config.data instanceof File) {
+			return this.config.data.name || "未命名文件"
+		}
+		return this.config.data.name || "workbook.xlsx"
 	}
 
 	/** 获取数据 */
-	private getData(): File {
+	private getData(): File | Partial<IWorkbookData> {
 		return this.config.data
+	}
+
+	/** 获取当前 worksheet 数据 */
+	public getWorksheetData(): Partial<IWorkbookData> | null {
+		if (!this.univer || !this.workbookId) {
+			return null
+		}
+
+		try {
+			const univerInstanceService = this.univer.__getInjector().get(IUniverInstanceService)
+			const workbook = univerInstanceService.getUnit<Workbook>(
+				this.workbookId,
+				UniverInstanceType.UNIVER_SHEET
+			)
+			
+			if (!workbook) {
+				return null
+			}
+
+			return workbook.save()
+		} catch (error) {
+			console.error("[UniverRenderer] 获取 worksheet 数据失败:", error)
+			return null
+		}
 	}
 
 	/** 初始化 Worker 管理器 */
@@ -409,6 +468,102 @@ export class UniverRenderer {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Worker 初始化失败"
 			this.callbacks.onError?.(errorMessage)
+			throw error
+		}
+	}
+
+	/** 更新 worksheet 数据（增量更新，保持光标等状态）-主动更新 */
+	public async updateWorksheetData(newData: Partial<IWorkbookData>): Promise<void> {
+		if (!this.univer || !this.workbookId) {
+			console.error("[UniverRenderer] 无法获取 workbook 实例")
+			return
+		}
+
+		try {
+			const injector = this.univer.__getInjector()
+			const commandService = injector.get(ICommandService)
+			const univerInstanceService = injector.get(IUniverInstanceService)
+			
+			// 获取当前 workbook
+			const workbook = univerInstanceService.getUnit<Workbook>(
+				this.workbookId,
+				UniverInstanceType.UNIVER_SHEET
+			)
+			
+			if (!workbook) {
+				console.error("[UniverRenderer] 无法获取 workbook 实例")
+				return
+			}
+
+			// 如果新数据包含 sheets 数据，进行增量更新
+			if (newData.sheets) {
+				// 遍历所有 sheet 更新数据
+				for (const [sheetId, sheetData] of Object.entries(newData.sheets)) {
+					const worksheet = workbook.getSheetBySheetId(sheetId)
+					
+					if (!worksheet) {
+						console.warn(`[UniverRenderer] Sheet ${sheetId} 不存在，跳过更新`)
+						continue
+					}
+
+					// 使用 SetRangeValuesMutation 更新单元格数据
+					if (sheetData.cellData) {
+						await commandService.executeCommand(SetRangeValuesMutation.id, {
+							unitId: this.workbookId,
+							subUnitId: sheetId,
+							cellValue: sheetData.cellData,
+						})
+					}
+				}
+			}
+			
+			console.log("[UniverRenderer] 增量更新 worksheet 数据完成")
+		} catch (error) {
+			console.error("[UniverRenderer] 更新 worksheet 数据失败:", error)
+			throw error
+		}
+	}
+
+	/** 加载新文件（全量替换） */
+	public async loadFile(file: File): Promise<void> {
+		if (!this.univer || !this.workbookId || !this.workerManager) {
+			console.error("[UniverRenderer] 无法获取 workbook 实例")
+			return
+		}
+
+		try {
+			const univerInstanceService = this.univer.__getInjector().get(IUniverInstanceService)
+			
+			// 转换文件数据
+			const isReadonly = this.config.mode === "readonly"
+			const workbookData = await this.workerManager.transformData(file, file.name, isReadonly)
+			
+			// 全量替换：销毁旧的，创建新的
+			univerInstanceService.disposeUnit(this.workbookId)
+			this.workbookId = workbookData.id as string
+			this.univer.createUnit(UniverInstanceType.UNIVER_SHEET, workbookData)
+			
+			// 重新配置权限
+			this.configurePermissions()
+			
+			if (this.config.mode === "readonly") {
+				this.setupReadonlyBehavior()
+			}
+			
+			// 重新设置编辑监听器（监听器在销毁 workbook 时会失效）
+			if (this.config.onDataChange) {
+				const data = this.getWorksheetData()
+				if (data) {
+					// 延迟触发，确保 UI 已经更新
+					setTimeout(() => {
+						this.config.onDataChange?.(data)
+					}, 100)
+				}
+			}
+			
+			console.log("[UniverRenderer] 文件加载完成:", file.name)
+		} catch (error) {
+			console.error("[UniverRenderer] 加载文件失败:", error)
 			throw error
 		}
 	}

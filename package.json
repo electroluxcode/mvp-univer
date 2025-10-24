@@ -6,7 +6,6 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next dev --turbopack",
-    "lint": "eslint"
   },
   "dependencies": {
     "@univerjs/core": "^0.10.12",
@@ -32,13 +31,10 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^0.10.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

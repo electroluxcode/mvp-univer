@@ -5,10 +5,21 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start",
+    "start": "next dev --turbopack",
     "lint": "eslint"
   },
   "dependencies": {
+    "@univerjs/core": "^0.10.12",
+    "@univerjs/design": "^0.10.12",
+    "@univerjs/docs": "^0.10.12",
+    "@univerjs/docs-ui": "^0.10.12",
+    "@univerjs/engine-formula": "^0.10.12",
+    "@univerjs/engine-render": "^0.10.12",
+    "@univerjs/sheets": "^0.10.12",
+    "@univerjs/sheets-formula-ui": "^0.10.12",
+    "@univerjs/sheets-numfmt-ui": "^0.10.12",
+    "@univerjs/sheets-ui": "^0.10.12",
+    "@univerjs/ui": "^0.10.12",
     "@xmldom/xmldom": "^0.8.11",
     "ahooks": "^3.9.5",
     "antd": "^5.27.6",
@@ -21,7 +32,7 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
+    "@eslint/eslintrc": "^0.10.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

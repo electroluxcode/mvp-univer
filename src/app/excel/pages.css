@@ -1,0 +1,310 @@
+/* 通用页面样式 */
+.page-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+}
+
+.page-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #ffffff;
+}
+
+.page-header h1 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.page-header p {
+    margin: 0;
+    color: #999;
+    font-size: 14px;
+}
+
+.page-content {
+    flex: 1;
+    padding: 24px 32px;
+    overflow-y: auto;
+    background: #fafafa;
+}
+
+/* ============================================
+   占位内容样式
+   ============================================ */
+.placeholder-content {
+    max-width: 600px;
+    margin: 60px auto;
+    text-align: center;
+}
+
+.placeholder-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
+}
+
+.placeholder-content h2 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.placeholder-content p {
+    margin: 0 0 24px 0;
+    color: #666;
+    font-size: 16px;
+}
+
+.placeholder-content ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+}
+
+.placeholder-content li {
+    padding: 8px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.placeholder-content li:before {
+    content: '✓ ';
+    color: #52c41a;
+    margin-right: 8px;
+}
+
+/* ============================================
+   模板网格样式
+   ============================================ */
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 8px;
+}
+
+.template-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.template-card:hover {
+    border-color: #1890ff;
+    box-shadow: 0 2px 12px rgba(24, 144, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.template-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.template-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.template-card p {
+    margin: 0 0 16px 0;
+    color: #999;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.use-template-btn {
+    width: 100%;
+    padding: 8px 16px;
+    border: 1px solid #1890ff;
+    background: transparent;
+    color: #1890ff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.use-template-btn:hover {
+    background: #1890ff;
+    color: white;
+}
+
+/* ============================================
+   导入导出网格样式
+   ============================================ */
+.import-export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    padding: 8px;
+}
+
+.action-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 32px 24px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.action-card:hover {
+    border-color: #1890ff;
+    box-shadow: 0 2px 12px rgba(24, 144, 255, 0.15);
+}
+
+.action-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.action-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.action-card p {
+    margin: 0 0 20px 0;
+    color: #999;
+    font-size: 14px;
+}
+
+.action-btn {
+    padding: 8px 24px;
+    border: none;
+    background: #1890ff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: #40a9ff;
+}
+
+.action-btn:active {
+    background: #096dd9;
+}
+
+/* ============================================
+   设置页面样式
+   ============================================ */
+.settings-section {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.settings-section h3 {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.setting-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-item label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+}
+
+.setting-select {
+    padding: 6px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    background: white;
+    cursor: pointer;
+}
+
+.setting-select:focus {
+    outline: none;
+    border-color: #1890ff;
+}
+
+.setting-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.about-info {
+    padding: 8px 0;
+}
+
+.about-info p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.8;
+}
+
+.about-info strong {
+    color: #333;
+}
+
+/* ============================================
+   响应式设计
+   ============================================ */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 16px 20px;
+    }
+
+    .page-content {
+        padding: 16px 20px;
+    }
+
+    .templates-grid,
+    .import-export-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   滚动条样式
+   ============================================ */
+.page-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.page-content::-webkit-scrollbar-track {
+    background: #f5f5f5;
+}
+
+.page-content::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 4px;
+}
+
+.page-content::-webkit-scrollbar-thumb:hover {
+    background: #bfbfbf;
+}
+

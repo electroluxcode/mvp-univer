@@ -7,7 +7,6 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> ={
   ],
   "name": "My Workbook",
   "appVersion": "0.10.12",
-  "locale": "zhCN",
   "styles": {},
   "sheets": {
     "sheet-01": {

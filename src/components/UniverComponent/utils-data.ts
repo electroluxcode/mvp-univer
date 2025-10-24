@@ -521,7 +521,7 @@ function transformExcelToWorkbook(
 
 /** 将 File 对象转换为 Univer 工作簿格式 */
 export async function transformDataToWorkbook(
-	file: File,
+	file: File | any,
 	fileName?: string,
 	isReadonly?: boolean,
 ): Promise<Partial<IWorkbookData>> {

@@ -2,19 +2,21 @@ import { useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from 
 import { useUnmount, useSafeState, useMount } from "ahooks"
 
 import { UniverRenderer, type UniverRendererConfig } from "./UniverRenderer"
-import type { UniverComponentNewProps } from "./types"
-import type { IWorkbookData } from "@univerjs/core"
+import type { UniverComponentNewProps, UniverData } from "./types"
+import type { IDocumentData, IWorkbookData } from "@univerjs/core"
 
 import "./styles.css"
 
 export interface UniverComponentRef {
+	getDocxData: () => Partial<IDocumentData> | null
 	getWorksheetData: () => Partial<IWorkbookData> | null
 	exportToExcel: (fileName?: string) => Promise<void>
+	exportToDocx: (fileName?: string) => Promise<void>
 }
 
-/**  Univer 表格组件 */
+/**  Univer 组件 - 支持 Sheet、Doc、Slide */
 const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProps>((props, ref) => {
-	const { data, width = "100%", height = "100%", mode = "readonly", onDataChange } = props
+	const { type = "sheet", data, width = "100%", height = "100%", mode = "readonly", onDataChange, fullUpdate = false } = props
 
 	const [loading, setLoading] = useSafeState(true)
 	const [error, setError] = useSafeState<string | null>(null)
@@ -26,12 +28,21 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 
 	// 暴露给父组件的方法
 	useImperativeHandle(ref, () => ({
+
+		getDocxData: () => {
+			return rendererRef.current?.getDocxData() || null
+		},
 		getWorksheetData: () => {
 			return rendererRef.current?.getWorksheetData() || null
 		},
 		exportToExcel: async (fileName?: string) => {
 			if (rendererRef.current) {
 				await rendererRef.current.exportToExcel(fileName)
+			}
+		},
+		exportToDocx: async (fileName?: string) => {
+			if (rendererRef.current) {
+				await rendererRef.current.exportToDocx(fileName)
 			}
 		}
 	}))
@@ -48,12 +59,20 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 				setError(error instanceof Error ? error.message : '导入失败')
 			})
 		} else {
-			// JSON 数据更新：增量更新
-			rendererRef.current.updateWorksheetData(data).catch((error) => {
-				console.error('更新数据失败:', error)
-			})
+			// JSON 数据更新：根据类型选择更新方法
+			if (type === "doc") {
+				// Doc 类型使用 updateDocData
+				rendererRef.current.updateDocData(data).catch((error) => {
+					console.error('更新文档数据失败:', error)
+				})
+			} else {
+				// Sheet 类型使用 updateWorksheetData
+				rendererRef.current.updateWorksheetData(data, { fullUpdate }).catch((error) => {
+					console.error('更新表格数据失败:', error)
+				})
+			}
 		}
-	}, [data, setError])
+	}, [data, type, fullUpdate, setError])
 	/** 清理渲染器实例 */
 	const disposeRenderer = useCallback(() => {
 		if (rendererRef.current && !rendererRef.current.isDisposed()) {
@@ -75,6 +94,7 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 			disposeRenderer()
 
 			const config: UniverRendererConfig = {
+				type,
 				container: containerRef.current,
 				mode,
 				data,
@@ -99,7 +119,7 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 			setLoading(false)
 			isInitializedRef.current = false
 		}
-	}, [error, setLoading, setError, disposeRenderer, mode, data])
+	}, [error, setLoading, setError, disposeRenderer, type, mode, data, onDataChange])
 
 	useMount(() => {
 		if (cleanupTimeoutRef.current) {

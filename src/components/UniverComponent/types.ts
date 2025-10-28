@@ -1,7 +1,7 @@
-import type { IWorkbookData } from "@univerjs/core"
+import type { IWorkbookData, IDocumentData } from "@univerjs/core"
 
 /** 支持的文件类型 */
-export type SupportedFileType = "sheet" | "slide" | "doc"
+export type SupportedFileType = "sheet" | "doc" | "slide"
 
 /** 组件模式 */
 export type ComponentMode = "readonly" | "edit"
@@ -9,10 +9,15 @@ export type ComponentMode = "readonly" | "edit"
 /** 尺寸类型 */
 export type SizeValue = number | string
 
+/** Univer 数据类型 - 支持 Sheet、Doc、Slide */
+export type UniverData = Partial<IWorkbookData> | Partial<IDocumentData> | any
+
 /** Univer 组件属性接口 */
 export interface UniverComponentNewProps {
+	/** 文件类型 - 默认为 sheet */
+	type?: SupportedFileType
 	/** 要显示的数据 - 支持 File 或 JSON 对象 */
-	data: File | Partial<IWorkbookData>
+	data: File | UniverData
 	/** 组件宽度 */
 	width?: SizeValue
 	/** 组件高度 */
@@ -20,7 +25,9 @@ export interface UniverComponentNewProps {
 	/** 组件模式 */
 	mode?: ComponentMode
 	/** 数据变化回调 */
-	onDataChange?: (data: Partial<IWorkbookData>) => void
+	onDataChange?: (data: UniverData) => void
+	/** 是否全量更新（从 JSON 编辑器更新时使用）- 仅对 sheet 类型有效 */
+	fullUpdate?: boolean
 }
 
 /** Worker 消息类型枚举 */
@@ -34,8 +41,10 @@ export enum TransformWorkerMessageType {
 export interface WorkerRequestPayload {
 	/** 任务 ID */
 	id: string
+	/** 文件类型 */
+	type?: SupportedFileType
 	/** 要处理的数据 - 支持 File 或 JSON 对象 */
-	data: File | Partial<IWorkbookData>
+	data: File | UniverData
 	/** 文件名称 */
 	fileName?: string
 	/** 是否为只读模式 */
@@ -61,7 +70,7 @@ export interface WorkerResponsePayload {
 	/** 任务 ID */
 	id: string
 	/** 处理结果 */
-	result?: Partial<IWorkbookData>
+	result?: UniverData
 	/** 错误信息 */
 	error?: WorkerError
 }
@@ -75,6 +84,6 @@ export interface WorkerResponse {
 /** Worker 任务接口 - 用于跟踪单个转换任务的状态 */
 export interface TransformTask {
 	id: string
-	resolve: (value: Partial<IWorkbookData>) => void
+	resolve: (value: UniverData) => void
 	reject: (error: Error) => void
 }

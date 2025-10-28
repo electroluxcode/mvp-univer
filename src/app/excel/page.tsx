@@ -12,6 +12,7 @@ export default function ExcelPlayground() {
   const [jsonData, setJsonData] = useState<string>(JSON.stringify(DEFAULT_DATA, null, 2))
   const [previewData, setPreviewData] = useState<Partial<IWorkbookData> | File>(DEFAULT_DATA)
   const [error, setError] = useState<string>('')
+  const [isFromJsonEditor, setIsFromJsonEditor] = useState<boolean>(false)
   const isUpdatingFromPreview = useRef(false)
   const isFromFileImport = useRef(false)
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined)
@@ -27,6 +28,7 @@ export default function ExcelPlayground() {
     debounceTimer.current = setTimeout(() => {
       try {
         const parsed = JSON.parse(value)
+        setIsFromJsonEditor(true) // 标记为从 JSON 编辑器更新
         setPreviewData(parsed)
         setError('')
       } catch (e) {
@@ -48,6 +50,8 @@ export default function ExcelPlayground() {
       isFromFileImport.current = false
     }
 
+    // 重置 JSON 编辑器标志
+    setIsFromJsonEditor(false)
     isUpdatingFromPreview.current = false
   }, [])
 
@@ -65,6 +69,7 @@ export default function ExcelPlayground() {
     if (file) {
       // 标记为文件导入
       isFromFileImport.current = true
+      setIsFromJsonEditor(false) // 文件导入不需要全量更新标志
       // 设置文件数据，触发全量替换
       setPreviewData(file)
       setJsonData(`// 正在导入文件: ${file.name}\n// 等待转换完成...`)
@@ -151,6 +156,7 @@ export default function ExcelPlayground() {
                 height="100%"
                 mode="edit"
                 onDataChange={handleDataChange}
+                fullUpdate={isFromJsonEditor}
               />
             </div>
           </div>

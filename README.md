@@ -14,7 +14,7 @@
 
 ## 安装
 ```
-pnpm add ahooks react-i18next antd nanoid lodash-es xlsx-js-style @xmldom/xmldom @univerjs/ui @univerjs/sheets-formula-ui @univerjs/sheets-ui  @univerjs/docs-ui @univerjs/sheets @univerjs/core @univerjs/sheets-numfmt-ui @univerjs/engine-render @univerjs/engine-formula @univerjs/docs @univerjs/design @univerjs/ui 
+pnpm add ahooks react-i18next antd nanoid lodash-es xlsx-js-style @xmldom/xmldom @univerjs/ui @univerjs/sheets-formula-ui @univerjs/sheets-ui  @univerjs/docs-ui @univerjs/sheets @univerjs/core @univerjs/sheets-numfmt-ui @univerjs/engine-render @univerjs/engine-formula @univerjs/docs @univerjs/design @univerjs/ui  @univerjs/preset-docs-core @univerjs/presets
 
 ```
 

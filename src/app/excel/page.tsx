@@ -13,6 +13,7 @@ export default function ExcelPlayground() {
   const [previewData, setPreviewData] = useState<Partial<IWorkbookData> | File>(DEFAULT_DATA)
   const [error, setError] = useState<string>('')
   const [isFromJsonEditor, setIsFromJsonEditor] = useState<boolean>(false)
+  const [mode, setMode] = useState<'edit' | 'readonly'>('edit')
   const isUpdatingFromPreview = useRef(false)
   const isFromFileImport = useRef(false)
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined)
@@ -99,6 +100,11 @@ export default function ExcelPlayground() {
     }
   }, [])
 
+  // 切换编辑/只读模式
+  const handleModeToggle = useCallback(() => {
+    setMode(prevMode => prevMode === 'edit' ? 'readonly' : 'edit')
+  }, [])
+
   return (
     <div className="playground-container">
         {/* 顶部工具栏 */}
@@ -110,6 +116,17 @@ export default function ExcelPlayground() {
             </button>
             <button onClick={handleExportClick} className="import-btn" style={{ marginLeft: '10px' }}>
               💾 导出 Excel
+            </button>
+            <button 
+              onClick={handleModeToggle} 
+              className="import-btn" 
+              style={{ 
+                marginLeft: '10px',
+                backgroundColor: mode === 'readonly' ? '#ff9800' : '#4caf50',
+                color: 'white'
+              }}
+            >
+              {mode === 'readonly' ? '🔒 只读模式' : '✏️ 编辑模式'}
             </button>
             <input
               ref={fileInputRef}
@@ -150,11 +167,12 @@ export default function ExcelPlayground() {
             </div>
             <div className="preview-container">
               <UniverComponent
+                key={`excel-${mode}`}
                 ref={univerRef}
                 data={previewData}
                 width="100%"
                 height="100%"
-                mode="edit"
+                mode={mode}
                 onDataChange={handleDataChange}
                 fullUpdate={isFromJsonEditor}
               />

@@ -11,6 +11,7 @@ export default function DocsPage() {
   const [jsonData, setJsonData] = useState<string>(JSON.stringify(DEFAULT_DOC_DATA, null, 2))
   const [previewData, setPreviewData] = useState<Partial<IDocumentData> | File>(DEFAULT_DOC_DATA)
   const [error, setError] = useState<string>('')
+  const [mode, setMode] = useState<'edit' | 'readonly'>('edit')
   const isUpdatingFromPreview = useRef(false)
   const isFromFileImport = useRef(false)
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined)
@@ -95,6 +96,11 @@ export default function DocsPage() {
     }
   }, [])
 
+  // 切换编辑/只读模式
+  const handleModeToggle = useCallback(() => {
+    setMode(prevMode => prevMode === 'edit' ? 'readonly' : 'edit')
+  }, [])
+
   return (
     <div className="playground-container">
       {/* 顶部工具栏 */}
@@ -106,6 +112,17 @@ export default function DocsPage() {
           </button>
           <button onClick={handleExportClick} className="import-btn" style={{ marginLeft: '10px' }}>
             💾 导出文档
+          </button>
+          <button 
+            onClick={handleModeToggle} 
+            className="import-btn" 
+            style={{ 
+              marginLeft: '10px',
+              backgroundColor: mode === 'readonly' ? '#ff9800' : '#4caf50',
+              color: 'white'
+            }}
+          >
+            {mode === 'readonly' ? '🔒 只读模式' : '✏️ 编辑模式'}
           </button>
           <input
             ref={fileInputRef}
@@ -146,12 +163,13 @@ export default function DocsPage() {
           </div>
           <div className="preview-container">
             <UniverComponent
+              key={`doc-${mode}`}
               ref={univerRef}
               type="doc"
               data={previewData}
               width="100%"
               height="100%"
-              mode="edit"
+              mode={mode}
               onDataChange={handleDataChange}
             />
           </div>

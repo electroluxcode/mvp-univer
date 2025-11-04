@@ -12,7 +12,7 @@ import {
 	CommandType,
 } from "@univerjs/core"
 import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula"
-import { UniverRenderEnginePlugin } from "@univerjs/engine-render"
+import { UniverRenderEnginePlugin, DeviceInputEventType } from "@univerjs/engine-render"
 import {
 	UniverSheetsPlugin,
 	WorkbookEditablePermission,
@@ -25,7 +25,7 @@ import {
 import { UniverDocsPlugin } from "@univerjs/docs"
 import { UniverSheetsFormulaUIPlugin } from "@univerjs/sheets-formula-ui"
 import { UniverSheetsNumfmtUIPlugin } from "@univerjs/sheets-numfmt-ui"
-import { UniverSheetsUIPlugin } from "@univerjs/sheets-ui"
+import { UniverSheetsUIPlugin, IEditorBridgeService, SetCellEditVisibleOperation } from "@univerjs/sheets-ui"
 import { UniverDocsUIPlugin } from "@univerjs/docs-ui"
 import { UniverUIPlugin } from "@univerjs/ui"
 import { merge } from "lodash-es"
@@ -74,6 +74,7 @@ export class UniverRenderer {
 	private workerManager: UniverWorkerManager | null = null
 	private workbookId: string | null = null
 	private documentId: string | null = null
+	private outsideClickHandler: ((event: MouseEvent) => void) | null = null
 
 	constructor(config: UniverRendererConfig, callbacks: UniverRendererCallbacks = {}) {
 		this.config = config
@@ -147,6 +148,11 @@ export class UniverRenderer {
 			
 			// 设置编辑监听器
 			this.setupOnDataChangeListener()
+
+			// 设置外部点击监听器（仅在编辑模式下）
+			if (this.config.mode === "edit" && this.config.type === "sheet") {
+				this.setupOutsideClickListener()
+			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "渲染失败"
 			this.callbacks.onError?.(errorMessage)
@@ -234,8 +240,64 @@ export class UniverRenderer {
 		}
 	}
 
+	/** 设置外部点击监听器 - 点击 Univer 组件外部时关闭编辑器 */
+	private setupOutsideClickListener(): void {
+		if (!this.univer) return
+
+		// 创建点击处理器
+		this.outsideClickHandler = (event: MouseEvent) => {
+			try {
+				if (!this.univer) return
+
+				const target = event.target as HTMLElement
+				const container = this.config.container
+
+				// 检查是否点击在容器内部
+				if (container && container.contains(target)) {
+					return
+				}
+
+				// 获取编辑器桥接服务
+				const injector = this.univer.__getInjector()
+				const editorBridgeService = injector.get(IEditorBridgeService)
+				const commandService = injector.get(ICommandService)
+
+				// 检查编辑器是否可见
+				const isVisible = editorBridgeService.isVisible().visible
+				if (!isVisible) return
+
+				// 检查是否强制保持可见（如公式引用选择模式）
+				if (editorBridgeService.isForceKeepVisible()) {
+					return
+				}
+
+				// 关闭编辑器
+				commandService.syncExecuteCommand(SetCellEditVisibleOperation.id, {
+					visible: false,
+					eventType: DeviceInputEventType.PointerDown,
+					unitId: this.workbookId || undefined,
+				})
+			} catch (error) {
+				console.warn('[UniverRenderer] 外部点击处理失败:', error)
+			}
+		}
+
+		// 延迟添加监听器，避免与初始化时的点击事件冲突
+		setTimeout(() => {
+			if (this.outsideClickHandler) {
+				document.addEventListener('mousedown', this.outsideClickHandler, true)
+			}
+		}, 100)
+	}
+
 	/** 销毁实例 */
 	dispose(): void {
+		// 移除外部点击监听器
+		if (this.outsideClickHandler) {
+			document.removeEventListener('mousedown', this.outsideClickHandler, true)
+			this.outsideClickHandler = null
+		}
+
 		if (this.univer && !this.disposed) {
 			try {
 				this.univer.dispose()

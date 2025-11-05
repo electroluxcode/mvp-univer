@@ -75,6 +75,7 @@ export class UniverRenderer {
 	private workbookId: string | null = null
 	private documentId: string | null = null
 	private outsideClickHandler: ((event: MouseEvent) => void) | null = null
+	private hasRegisteredOutsideClickListener = false
 
 	constructor(config: UniverRendererConfig, callbacks: UniverRendererCallbacks = {}) {
 		this.config = config
@@ -284,7 +285,8 @@ export class UniverRenderer {
 
 		// 延迟添加监听器，避免与初始化时的点击事件冲突
 		setTimeout(() => {
-			if (this.outsideClickHandler) {
+			if (this.outsideClickHandler && !this.hasRegisteredOutsideClickListener) {
+				this.hasRegisteredOutsideClickListener = true
 				document.addEventListener('mousedown', this.outsideClickHandler, true)
 			}
 		}, 100)
@@ -904,6 +906,7 @@ export class UniverRenderer {
 
 		// 更新配置
 		this.config.mode = mode
+		this.setupOutsideClickListener()
 
 		try {
 			const injector = this.univer.__getInjector()

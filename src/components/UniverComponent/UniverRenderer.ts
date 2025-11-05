@@ -894,4 +894,71 @@ export class UniverRenderer {
 			throw error
 		}
 	}
+
+	/** 动态设置模式 - 在 readonly 和 edit 之间切换 */
+	public setMode(mode: 'readonly' | 'edit'): void {
+		if (!this.univer) {
+			console.warn('[UniverRenderer] Univer 实例不存在，无法设置模式')
+			return
+		}
+
+		// 更新配置
+		this.config.mode = mode
+
+		try {
+			const injector = this.univer.__getInjector()
+			const permissionService = injector.get(IPermissionService)
+
+			if (mode === 'readonly') {
+				// 切换到只读模式
+				console.log('[UniverRenderer] 切换到只读模式')
+				this.setReadonlyMode(permissionService)
+				this.setupReadonlyBehavior()
+			} else {
+				// 切换到编辑模式
+				console.log('[UniverRenderer] 切换到编辑模式')
+				this.setEditMode(permissionService)
+			}
+		} catch (error) {
+			console.error('[UniverRenderer] 设置模式失败:', error)
+		}
+	}
+
+	/** 设置编辑模式 - 启用所有编辑权限 */
+	private setEditMode(permissionService: IPermissionService): void {
+		const unitId = this.workbookId || "workbook1"
+		const worksheetId = this.getCurrentWorksheetId()
+
+		if (worksheetId) {
+			// 启用单元格值编辑
+			const cellValuePermission = new WorksheetSetCellValuePermission(unitId, worksheetId)
+			if (!permissionService.getPermissionPoint(cellValuePermission.id)) {
+				permissionService.addPermissionPoint(cellValuePermission)
+			}
+			permissionService.updatePermissionPoint(cellValuePermission.id, true)
+
+			// 启用单元格样式编辑
+			const cellStylePermission = new WorksheetSetCellStylePermission(unitId, worksheetId)
+			if (!permissionService.getPermissionPoint(cellStylePermission.id)) {
+				permissionService.addPermissionPoint(cellStylePermission)
+			}
+			permissionService.updatePermissionPoint(cellStylePermission.id, true)
+
+			// 启用工作簿编辑权限
+			const workbookEditablePermission = new WorkbookEditablePermission(unitId)
+			if (!permissionService.getPermissionPoint(workbookEditablePermission.id)) {
+				permissionService.addPermissionPoint(workbookEditablePermission)
+			}
+			permissionService.updatePermissionPoint(workbookEditablePermission.id, true)
+
+			// 启用列样式权限
+			const columnStylePermission = new WorksheetSetColumnStylePermission(unitId, worksheetId)
+			if (!permissionService.getPermissionPoint(columnStylePermission.id)) {
+				permissionService.addPermissionPoint(columnStylePermission)
+			}
+			permissionService.updatePermissionPoint(columnStylePermission.id, true)
+
+			console.log('[UniverRenderer] ✅ 已启用编辑模式')
+		}
+	}
 }

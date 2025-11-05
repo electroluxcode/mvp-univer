@@ -12,6 +12,7 @@ export interface UniverComponentRef {
 	getWorksheetData: () => Partial<IWorkbookData> | null
 	exportToExcel: (fileName?: string) => Promise<void>
 	exportToDocx: (fileName?: string) => Promise<void>
+	setMode: (mode: 'readonly' | 'edit') => void
 }
 
 /**  Univer 组件 - 支持 Sheet、Doc、Slide */
@@ -43,6 +44,11 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 		exportToDocx: async (fileName?: string) => {
 			if (rendererRef.current) {
 				await rendererRef.current.exportToDocx(fileName)
+			}
+		},
+		setMode: (mode: 'readonly' | 'edit') => {
+			if (rendererRef.current) {
+				rendererRef.current.setMode(mode)
 			}
 		}
 	}))

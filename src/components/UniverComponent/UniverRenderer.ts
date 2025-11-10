@@ -38,7 +38,7 @@ import SheetsUIZhCN from "@univerjs/sheets-ui/locale/zh-CN"
 import SheetsZhCN from "@univerjs/sheets/locale/zh-CN"
 import UIZhCN from "@univerjs/ui/locale/zh-CN"
 import { UniverWorkerManager } from "./UniverWorkerManager"
-import { transformUniverToExcel } from "./utils-export"
+import { exportUniverToExcel, transformUniverToExcel } from "./utils-export"
 import { exportUniverToDocx } from "./utils-export-docx"
 import { transformFileToDocData, transformJsonToDocData } from "./utils-data-docs"
 
@@ -862,6 +862,22 @@ export class UniverRenderer {
 					throw err
 				}
 			})
+		} catch (error) {
+			console.error('[UniverRenderer] 导出文件失败:', error)
+			throw error
+		}
+	}
+	/** 导出 Excel 文件 - 使用 ExcelJS 完整实现 */
+	public async getWorksheetBuffer(): Promise<ArrayBuffer> {
+		try {
+			// 获取当前工作簿数据（snapshot）
+			const snapshot = this.getWorksheetData()
+			if (!snapshot || !snapshot.sheets) {
+				throw new Error('无法获取工作簿数据')
+			}
+			// 使用完整的 ExcelJS 实现导出
+			const buffer = await exportUniverToExcel(snapshot)
+			return buffer
 		} catch (error) {
 			console.error('[UniverRenderer] 导出文件失败:', error)
 			throw error

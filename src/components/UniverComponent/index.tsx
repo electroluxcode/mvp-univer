@@ -10,6 +10,7 @@ import "./styles.css"
 export interface UniverComponentRef {
 	getDocxData: () => Partial<IDocumentData> | null
 	getWorksheetData: () => Partial<IWorkbookData> | null
+	getWorksheetBuffer: () => Promise<ArrayBuffer> | null
 	exportToExcel: (fileName?: string) => Promise<void>
 	exportToDocx: (fileName?: string) => Promise<void>
 	setMode: (mode: 'readonly' | 'edit') => void
@@ -35,6 +36,9 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 		},
 		getWorksheetData: () => {
 			return rendererRef.current?.getWorksheetData() || null
+		},
+		getWorksheetBuffer: () => {
+			return rendererRef.current?.getWorksheetBuffer ? rendererRef.current.getWorksheetBuffer() : null
 		},
 		exportToExcel: async (fileName?: string) => {
 			if (rendererRef.current) {

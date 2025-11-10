@@ -39,7 +39,7 @@ import SheetsZhCN from "@univerjs/sheets/locale/zh-CN"
 import UIZhCN from "@univerjs/ui/locale/zh-CN"
 import { UniverWorkerManager } from "./UniverWorkerManager"
 import { jsonToBufferInExcel, transformUniverToExcel } from "./utils-export"
-import { exportUniverToDocx } from "./utils-export-docx"
+import { exportUniverToDocx, jsonToBufferInDocx, transformUniverToDocx } from "./utils-export-docx"
 import { transformFileToDocData, transformJsonToDocData } from "./utils-data-docs"
 
 import '@univerjs/design/lib/index.css'
@@ -625,7 +625,7 @@ export class UniverRenderer {
 	/** 更新 worksheet 数据（支持增量更新和全量更新）-主动更新 */
 	public async updateWorksheetData(newData: Partial<IWorkbookData>, options?: { fullUpdate?: boolean }): Promise<void> {
 		if (!this.univer || !this.workbookId) {
-			console.error("[UniverRenderer] 无法获取 workbook 实例")
+			console.error("[UniverRenderer] updateWorksheetData 无法获取 workbook 实例")
 			return
 		}
 
@@ -801,7 +801,11 @@ export class UniverRenderer {
 			} else {
 				// Sheet 文件加载
 				if (!this.workbookId || !this.workerManager) {
-					console.error("[UniverRenderer] 无法获取 workbook 实例")
+					console.error(
+						"[UniverRenderer-loadFile] 无法获取 workbook 实例",
+						this.workbookId,
+						this.workerManager,
+					)
 					return
 				}
 
@@ -897,30 +901,65 @@ export class UniverRenderer {
 		}
 	}
 
-	/** 导出 Docx 文件 - 使用 docx 库实现 */
-	public async exportToDocx(config: ExportConfigType): Promise<void> {
-		const { mode, fileName } = config
+	/** 导出 Docx 文件 - 使用 docx 库生成 Buffer */
+	public async getDocxBuffer(): Promise<ArrayBuffer> {
 		try {
 			// 获取当前文档数据
 			const docData = this.getDocxData()
 			if (!docData || !docData.body) {
 				throw new Error('无法获取文档数据')
 			}
-
-			console.log('[UniverRenderer] 开始导出 Docx 文件')
-
 			// 使用 docx 库实现导出
-			await exportUniverToDocx({
+			const buffer = await jsonToBufferInDocx(docData)
+			return buffer
+		} catch (error) {
+			console.error('[UniverRenderer] 导出 Docx Buffer 失败:', error)
+			throw error
+		}
+	}
+
+	/**
+	 * @description: core: 导出 Docx 文件
+	 * buffer链路: exportToDocx->getDocxBuffer(getDocxData + jsonToBufferInDocx)-> transformUniverToDocx
+	 */
+	public async exportToDocx(config: ExportConfigType): Promise<void> {
+		const { mode, fileName, isDownload } = config
+		const isBuffer = mode === SupportedFileOutputModeMap.buffer
+		
+		// 非 Buffer 模式：使用 JSON 模式导出
+		if (!isBuffer) {
+			const docData = this.getDocxData()
+			console.log('🚀 [UniverRenderer] 导出 Docx 文件 - 使用 JSON 模式', docData)
+			if (!docData || !docData.body) {
+				throw new Error('无法获取文档数据')
+			}
+			await transformUniverToDocx({
 				docData,
+				mode: SupportedFileOutputModeMap.json,
 				fileName: fileName || `${docData.title || 'document'}_${new Date().getTime()}.docx`,
-				success: () => {
-					console.log('[UniverRenderer] Docx 文件导出成功')
-				},
-				error: (err) => {
-					console.error('[UniverRenderer] Docx 导出失败:', err)
-					throw err
-				}
 			})
+			return
+		}
+		
+		// Buffer 模式：使用 getDocxBuffer 获取 ArrayBuffer
+		try {
+			// 获取当前文档数据（buffer）
+			const docBuffer = await this.getDocxBuffer()
+			console.log('🚀 [UniverRenderer] 导出 Docx 文件 - 使用 buffer 模式', docBuffer)
+			if (isDownload) {
+				await transformUniverToDocx({
+					docData: docBuffer,
+					mode: "buffer",
+					fileName: fileName || `${this.fileName || 'document'}_${new Date().getTime()}.docx`,
+					success: () => {
+						console.log('[UniverRenderer] Docx 文件导出成功')
+					},
+					error: (err) => {
+						console.error('[UniverRenderer] Docx 导出失败:', err)
+						throw err
+					}
+				})
+			}
 		} catch (error) {
 			console.error('[UniverRenderer] 导出 Docx 文件失败:', error)
 			throw error

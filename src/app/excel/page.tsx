@@ -6,20 +6,25 @@ import type { UniverComponentRef } from '@/components/UniverComponent'
 import type { IWorkbookData } from '@univerjs/core'
 import './style.css'
 import { DEFAULT_DATA } from './data'
+import { SupportedFileOutputModeMap } from '../../components/UniverComponent/types'
+import { useSafeState } from 'ahooks'
 
+
+const nowImportType = SupportedFileOutputModeMap.buffer
 
 export default function ExcelPlayground() {
   const [jsonData, setJsonData] = useState<string>(JSON.stringify(DEFAULT_DATA, null, 2))
   const [previewData, setPreviewData] = useState<Partial<IWorkbookData> | File>(DEFAULT_DATA)
   const [error, setError] = useState<string>('')
   const [isFromJsonEditor, setIsFromJsonEditor] = useState<boolean>(false)
-  const [mode, setMode] = useState<'edit' | 'readonly'>('edit')
+  const [isReadonly, setIsReadonly] = useState<boolean>(false)
   const isUpdatingFromPreview = useRef(false)
   const isFromFileImport = useRef(false)
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const univerRef = useRef<UniverComponentRef>(null)
 
+  const [isLoading, setIsLoading] = useSafeState(true)
   // JSON 编辑器变化 - 实时应用到预览（防抖）
   const handleJsonChange = useCallback((value: string) => {
     if (debounceTimer.current) {
@@ -38,31 +43,21 @@ export default function ExcelPlayground() {
     }, 500)
   }, [])
 
-
-  // 预览数据变化 - 实时同步到 JSON
-  const handleDataChange = useCallback((data: Partial<IWorkbookData>) => {
-    isUpdatingFromPreview.current = true
-    const newJson = JSON.stringify(data, null, 2)
-    setJsonData(newJson)
-
-    // 如果是从文件导入，也需要更新 previewData 为 JSON 格式
-    if (isFromFileImport.current) {
-      setPreviewData(data)
-      isFromFileImport.current = false
+  useEffect(() => {
+    if(nowImportType !== SupportedFileOutputModeMap.buffer){
+      setPreviewData(DEFAULT_DATA)
+      setIsLoading(false)
+    }else{
+      // 导入 /test.xlsx 文件内容
+      fetch('/test.xlsx').then(res => res.arrayBuffer()).then(data => {
+        const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        setPreviewData(new File([blob], 'test.xlsx'))
+        setIsLoading(false)
+      })
     }
+  }, [nowImportType])
 
-    // 重置 JSON 编辑器标志
-    setIsFromJsonEditor(false)
-    isUpdatingFromPreview.current = false
-  }, [])
 
-  const onJsonInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value
-    setJsonData(value)
-    if (!isUpdatingFromPreview.current) {
-      handleJsonChange(value)
-    }
-  }
 
   // 导入 Excel 文件
   const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,13 +81,17 @@ export default function ExcelPlayground() {
   }, [])
 
   // 导出 Excel 文件
-  const handleExportClick = useCallback(() => {
+  const handleExportClick = useCallback(async () => {
     try {
       if (!univerRef.current) {
         setError('组件未初始化')
         return
       }
-      univerRef.current.exportToExcel()
+      univerRef.current.exportToExcel({
+        mode: nowImportType,
+        isDownload: true,
+        fileName: `export_${new Date().getTime()}.xlsx`,
+      })
       setError('')
     } catch (err) {
       console.error('导出失败:', err)
@@ -100,11 +99,16 @@ export default function ExcelPlayground() {
     }
   }, [])
 
-  // 切换编辑/只读模式
-  const handleModeToggle = useCallback(() => {
-    setMode(prevMode => prevMode === 'edit' ? 'readonly' : 'edit')
-  }, [])
+  // 切换只读模式
+  const handleToggleReadonly = useCallback(() => {
+    const newMode = !isReadonly
+    setIsReadonly(newMode)
+    univerRef.current?.setMode(newMode ? 'readonly' : 'edit')
+  }, [isReadonly])
 
+  if(isLoading){
+    return <div>Loading...</div>
+  }
   return (
     <div className="playground-container">
         {/* 顶部工具栏 */}
@@ -117,16 +121,8 @@ export default function ExcelPlayground() {
             <button onClick={handleExportClick} className="import-btn" style={{ marginLeft: '10px' }}>
               💾 导出 Excel
             </button>
-            <button 
-              onClick={handleModeToggle} 
-              className="import-btn" 
-              style={{ 
-                marginLeft: '10px',
-                backgroundColor: mode === 'readonly' ? '#ff9800' : '#4caf50',
-                color: 'white'
-              }}
-            >
-              {mode === 'readonly' ? '🔒 只读模式' : '✏️ 编辑模式'}
+            <button onClick={handleToggleReadonly} className="import-btn" style={{ marginLeft: '10px' }}>
+              {isReadonly ? '只读模式' : '编辑模式'}
             </button>
             <input
               ref={fileInputRef}
@@ -148,18 +144,6 @@ export default function ExcelPlayground() {
         {/* 主内容区域 */}
         <div className="playground-content">
           {/* 左侧 JSON 编辑器 */}
-          <div className="editor-panel">
-            <div className="panel-header">
-              <h3>JSON 数据</h3>
-            </div>
-            <textarea
-              className="json-editor"
-              value={jsonData}
-              onChange={onJsonInputChange}
-              spellCheck={false}
-            />
-          </div>
-
           {/* 右侧预览 */}
           <div className="preview-panel">
             <div className="panel-header">
@@ -167,13 +151,12 @@ export default function ExcelPlayground() {
             </div>
             <div className="preview-container">
               <UniverComponent
-                key={`excel-${mode}`}
                 ref={univerRef}
                 data={previewData}
                 width="100%"
                 height="100%"
-                mode={mode}
-                onDataChange={handleDataChange}
+                mode={isReadonly ? 'readonly' : 'edit'}
+                // onDataChange={handleDataChange}
                 fullUpdate={isFromJsonEditor}
               />
             </div>

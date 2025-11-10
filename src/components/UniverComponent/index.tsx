@@ -2,7 +2,7 @@ import { useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from 
 import { useUnmount, useSafeState, useMount } from "ahooks"
 
 import { UniverRenderer, type UniverRendererConfig } from "./UniverRenderer"
-import type { UniverComponentNewProps, UniverData } from "./types"
+import { SupportedFileTypeMap, type UniverComponentNewProps, type UniverData } from "./types"
 import type { IDocumentData, IWorkbookData } from "@univerjs/core"
 
 import "./styles.css"
@@ -72,7 +72,7 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 			})
 		} else {
 			// JSON 数据更新：根据类型选择更新方法
-			if (type === "doc") {
+			if (type === SupportedFileTypeMap.doc) {
 				// Doc 类型使用 updateDocData
 				rendererRef.current.updateDocData(data).catch((error) => {
 					console.error('更新文档数据失败:', error)

@@ -5,6 +5,79 @@
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } from 'docx'
 import type { IDocumentData } from '@univerjs/core'
+import type { exportImportMode } from './types'
+
+/**
+ * 将 Univer 文档数据转换为 Docx Buffer
+ */
+export async function jsonToBufferInDocx(docData: Partial<IDocumentData>): Promise<ArrayBuffer> {
+	console.log('🚀 [Export Docx] 开始将文档数据转换为 Buffer', docData)
+	
+	try {
+		// 转换为 docx 文档
+		const doc = await convertUniverDocToDocx(docData)
+		
+		// 生成 buffer
+		const buffer = await Packer.toBuffer(doc)
+		
+		console.log('✅ [Export Docx] Buffer 生成成功')
+		console.log('📦 [Export Docx] Buffer 大小:', buffer.byteLength, 'bytes')
+		
+		return buffer as unknown as ArrayBuffer
+	} catch (error) {
+		console.error('❌ [Export Docx] Buffer 生成失败:', error)
+		throw error
+	}
+}
+
+/**
+ * 转换 Univer 文档数据为 docx 并下载（支持 buffer 和 json 模式）
+ */
+export async function transformUniverToDocx(params: {
+	mode: exportImportMode
+	docData: any
+	fileName?: string
+	success?: () => void
+	error?: (err: Error) => void
+}): Promise<void> {
+	const { mode, docData, fileName, success, error } = params
+	
+	try {
+		let buffer = null
+		if (mode === "buffer") {
+			// Buffer 模式：docData 已经是 ArrayBuffer
+			buffer = docData
+		} else {
+			// JSON 模式：需要转换为 buffer
+			buffer = await jsonToBufferInDocx(docData)
+		}
+		
+		// 下载文件
+		const link = document.createElement('a')
+		const blob = new Blob([buffer], { 
+			type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document;charset=UTF-8' 
+		})
+
+		const url = URL.createObjectURL(blob)
+		link.href = url
+		link.download = fileName || `document_${new Date().getTime()}.docx`
+		document.body.appendChild(link)
+		link.click()
+
+		link.addEventListener('click', () => {
+			link.remove()
+			setTimeout(() => {
+				URL.revokeObjectURL(url)
+			}, 200)
+		})
+		
+		success?.()
+	} catch (err) {
+		console.error('[transformUniverToDocx] 导出失败:', err)
+		error?.(err as Error)
+		throw err
+	}
+}
 
 /**
  * 转换 Univer 文档数据为 docx 并下载

@@ -7,12 +7,14 @@ import type { IDocumentData, IWorkbookData } from "@univerjs/core"
 
 import "./styles.css"
 
+import type { ExportConfigType } from "./types"
 export interface UniverComponentRef {
 	getDocxData: () => Partial<IDocumentData> | null
 	getWorksheetData: () => Partial<IWorkbookData> | null
 	getWorksheetBuffer: () => Promise<ArrayBuffer> | null
-	exportToExcel: (fileName?: string) => Promise<void>
-	exportToDocx: (fileName?: string) => Promise<void>
+	exportToExcel: (config: ExportConfigType) => Promise<void>
+	
+	exportToDocx: (config: ExportConfigType) => Promise<void>
 	setMode: (mode: 'readonly' | 'edit') => void
 }
 
@@ -40,14 +42,14 @@ const UniverComponentNew = forwardRef<UniverComponentRef, UniverComponentNewProp
 		getWorksheetBuffer: () => {
 			return rendererRef.current?.getWorksheetBuffer ? rendererRef.current.getWorksheetBuffer() : null
 		},
-		exportToExcel: async (fileName?: string) => {
+		exportToExcel: async (config: ExportConfigType) => {
 			if (rendererRef.current) {
-				await rendererRef.current.exportToExcel(fileName)
+				await rendererRef.current.exportToExcel(config)
 			}
 		},
-		exportToDocx: async (fileName?: string) => {
+		exportToDocx: async (config: ExportConfigType) => {
 			if (rendererRef.current) {
-				await rendererRef.current.exportToDocx(fileName)
+				await rendererRef.current.exportToDocx(config)
 			}
 		},
 		setMode: (mode: 'readonly' | 'edit') => {

@@ -1,11 +1,38 @@
 import type { IWorkbookData, IDocumentData } from "@univerjs/core"
 
-/** 支持的文件类型 */
-export type SupportedFileType = "sheet" | "doc" | "slide"
 
-/** 组件模式 */
-export type ComponentMode = "readonly" | "edit"
 
+
+// =====类型映射=====
+export const SupportedFileTypeMap = {
+	sheet: "sheet",
+	doc: "doc",
+	slide: "slide"
+} as const
+
+export type SupportedFileType =  (typeof SupportedFileTypeMap)[keyof typeof SupportedFileTypeMap]
+
+export const SupportedFileOutputModeMap = {
+	buffer: "buffer",
+	json: "json",
+} as const
+
+export type exportImportMode =  (typeof SupportedFileOutputModeMap)[keyof typeof SupportedFileOutputModeMap]
+
+export const componentModeMap = {
+	readonly: "readonly",
+	edit: "edit",
+} as const
+
+export type ComponentMode =  (typeof componentModeMap)[keyof typeof componentModeMap]
+// =====finish====
+
+export type ExportConfigType = {
+	mode: exportImportMode
+	data? : any
+	fileName?: string
+	isDownload?: boolean
+}
 /** 尺寸类型 */
 export type SizeValue = number | string
 

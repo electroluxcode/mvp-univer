@@ -1,11 +1,12 @@
 
 import * as ExcelJS from 'exceljs'
+import type { exportImportMode } from './types'
 
-export async function exportUniverToExcel(snapshot: any): Promise<ArrayBuffer> {
+
+export async function jsonToBufferInExcel(snapshot: any): Promise<ArrayBuffer> {
 	console.log('🚀 [Export] Starting Univer to Excel export')
 	console.log('📊 [Export] Snapshot overview:', {
-		id: snapshot.id,
-		name: snapshot.name,
+		snapshot: snapshot,
 		sheetCount: snapshot.sheetOrder?.length || 0,
 		hasStyles: !!snapshot.styles,
 	})
@@ -601,15 +602,21 @@ function cleanFormula(formula: string): string {
  * 转换 Univer snapshot 到 Excel 并下载
  */
 export async function transformUniverToExcel(params: {
+	mode: exportImportMode
 	snapshot: any
 	fileName?: string
 	success?: () => void
 	error?: (err: Error) => void
 }): Promise<void> {
-	const { snapshot, fileName, success, error } = params
+	const { mode, snapshot, fileName, success, error } = params
 	
 	try {
-		const buffer = await exportUniverToExcel(snapshot)
+		let buffer = null
+		if(mode === "buffer"){
+			buffer = snapshot
+		}else{
+			buffer = await jsonToBufferInExcel(snapshot)
+		}
 		
 		// 下载文件
 		const link = document.createElement('a')

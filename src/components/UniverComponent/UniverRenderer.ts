@@ -38,7 +38,7 @@ import SheetsUIZhCN from "@univerjs/sheets-ui/locale/zh-CN"
 import SheetsZhCN from "@univerjs/sheets/locale/zh-CN"
 import UIZhCN from "@univerjs/ui/locale/zh-CN"
 import { UniverWorkerManager } from "./UniverWorkerManager"
-import { exportUniverToExcel, transformUniverToExcel } from "./utils-export"
+import { jsonToBufferInExcel, transformUniverToExcel } from "./utils-export"
 import { exportUniverToDocx } from "./utils-export-docx"
 import { transformFileToDocData, transformJsonToDocData } from "./utils-data-docs"
 
@@ -48,12 +48,12 @@ import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs/sheets-ui/lib/index.css'
 import '@univerjs/sheets-formula-ui/lib/index.css'
 import '@univerjs/sheets-numfmt-ui/lib/index.css'
-import { SupportedFileType } from "./types"
+import { ComponentMode, componentModeMap, ExportConfigType, SupportedFileOutputModeMap, SupportedFileType, SupportedFileTypeMap } from "./types"
 
 export interface UniverRendererConfig {
 	type: SupportedFileType
 	container: HTMLElement
-	mode: "readonly" | "edit"
+	mode: ComponentMode
 	data: File | Partial<IWorkbookData> | Partial<IDocumentData>
 	onDataChange?: (data: Partial<IWorkbookData> | Partial<IDocumentData>) => void
 }
@@ -127,9 +127,9 @@ export class UniverRenderer {
 		}
 
 		try {
-			const isReadonly = this.config.mode === "readonly"
+			const isReadonly = this.config.mode === componentModeMap.readonly
 
-			if (this.config.type === "doc") {
+			if (this.config.type === SupportedFileTypeMap.doc) {
 				// 渲染文档
 				await this.renderDoc()
 			} else {
@@ -151,7 +151,7 @@ export class UniverRenderer {
 			this.setupOnDataChangeListener()
 
 			// 设置外部点击监听器（仅在编辑模式下）
-			if (this.config.mode === "edit" && this.config.type === "sheet") {
+			if (this.config.mode === componentModeMap.edit && this.config.type === SupportedFileTypeMap.sheet) {
 				this.setupOutsideClickListener()
 			}
 		} catch (error) {
@@ -215,7 +215,7 @@ export class UniverRenderer {
 			commandService.onCommandExecuted((command) => {
 				if (command.type === CommandType.MUTATION) {
 					// 根据类型获取对应的数据
-					const data = this.config.type === "doc"
+					const data = this.config.type === SupportedFileTypeMap.doc
 						? this.getDocxData()
 						: this.getWorksheetData()
 
@@ -358,7 +358,7 @@ export class UniverRenderer {
 			},
 			protectedRangeShadow: false,
 			// 只读模式下禁用编辑相关功能
-			...(this.config.mode === "readonly" && {
+			...(this.config.mode === componentModeMap.readonly && {
 				cellEditor: {
 					enabled: false,
 				},
@@ -381,7 +381,7 @@ export class UniverRenderer {
 				const injector = this.univer.__getInjector()
 				const permissionService = injector.get(IPermissionService)
 				permissionService.setShowComponents(false)
-				if (this.config.mode === "readonly") {
+				if (this.config.mode === componentModeMap.readonly) {
 					this.setReadonlyMode(permissionService)
 				}
 			} catch (error) {
@@ -553,7 +553,7 @@ export class UniverRenderer {
 		}
 
 		// 根据类型返回默认文件名
-		return this.config.type === "doc" ? "document.docx" : "workbook.xlsx"
+		return this.config.type === SupportedFileTypeMap.doc ? "document.docx" : "workbook.xlsx"
 	}
 
 	/** 获取数据 */
@@ -561,7 +561,6 @@ export class UniverRenderer {
 		return this.config.data
 	}
 
-	/** 获取当前 worksheet 数据 */
 	public getWorksheetData(): Partial<IWorkbookData> | null {
 		if (!this.univer || !this.workbookId) {
 			return null
@@ -577,7 +576,6 @@ export class UniverRenderer {
 			if (!workbook) {
 				return null
 			}
-
 			return workbook.save()
 		} catch (error) {
 			console.error("[UniverRenderer] 获取 worksheet 数据失败:", error)
@@ -660,7 +658,7 @@ export class UniverRenderer {
 				// 重新配置权限
 				this.configurePermissions()
 				
-				if (this.config.mode === "readonly") {
+				if (this.config.mode === componentModeMap.readonly) {
 					this.setupReadonlyBehavior()
 				}
 				
@@ -748,7 +746,7 @@ export class UniverRenderer {
 			// 重新配置权限
 			this.configurePermissions()
 
-			if (this.config.mode === "readonly") {
+			if (this.config.mode === componentModeMap.readonly) {
 				this.setupReadonlyBehavior()
 			}
 
@@ -769,7 +767,7 @@ export class UniverRenderer {
 		try {
 			const univerInstanceService = this.univer.__getInjector().get(IUniverInstanceService)
 
-			if (this.config.type === "doc") {
+			if (this.config.type === SupportedFileTypeMap.doc) {
 				// Doc 文件加载
 				if (!this.documentId) {
 					console.error("[UniverRenderer] 无法获取 document 实例")
@@ -787,7 +785,7 @@ export class UniverRenderer {
 				// 重新配置权限
 				this.configurePermissions()
 
-				if (this.config.mode === "readonly") {
+				if (this.config.mode === componentModeMap.readonly) {
 					this.setupReadonlyBehavior()
 				}
 
@@ -807,7 +805,7 @@ export class UniverRenderer {
 					return
 				}
 
-				const isReadonly = this.config.mode === "readonly"
+				const isReadonly = this.config.mode === componentModeMap.readonly
 				const workbookData = await this.workerManager.transformData(file, file.name, isReadonly)
 
 				// 全量替换：销毁旧的，创建新的
@@ -818,7 +816,7 @@ export class UniverRenderer {
 				// 重新配置权限
 				this.configurePermissions()
 
-				if (this.config.mode === "readonly") {
+				if (this.config.mode === componentModeMap.readonly) {
 					this.setupReadonlyBehavior()
 				}
 
@@ -840,28 +838,43 @@ export class UniverRenderer {
 		}
 	}
 
-	/** 导出 Excel 文件 - 使用 ExcelJS 完整实现 */
-	public async exportToExcel(fileName?: string): Promise<void> {
-		try {
-			// 获取当前工作簿数据（snapshot）
-			const snapshot = this.getWorksheetData()
-			if (!snapshot || !snapshot.sheets) {
+	/**
+	 * @description: core: 导出 Excel 文件
+	 * buffer链路: exportToExcel->getWorksheetBuffer(getWorksheetData + jsonToBufferInExcel)-> transformUniverToExcel
+	 */
+	public async exportToExcel(config: ExportConfigType): Promise<void> {
+		const { mode, fileName, isDownload } = config
+		const isBuffer = mode === SupportedFileOutputModeMap.buffer
+		if(!isBuffer){
+			const worksheetData = this.getWorksheetData()
+			console.log('🚀 [UniverRenderer] 导出 Excel 文件 - 使用 ExcelJS 完整实现', worksheetData)
+			if(!worksheetData){
 				throw new Error('无法获取工作簿数据')
 			}
-
-
-			// 使用完整的 ExcelJS 实现导出
 			await transformUniverToExcel({
-				snapshot,
-				fileName: fileName || snapshot.name || `${snapshot.name || 'export'}_${new Date().getTime()}.xlsx`,
-				success: () => {
-					console.log('[UniverRenderer] 文件导出成功')
-				},
-				error: (err) => {
-					console.error('[UniverRenderer] 导出失败:', err)
-					throw err
-				}
+				snapshot: worksheetData,
+				mode: SupportedFileOutputModeMap.json,
+				fileName: fileName || `${this.fileName || 'export'}_${new Date().getTime()}.xlsx`,
 			})
+			return
+		}
+		try {
+			// 获取当前工作簿数据（snapshot）
+			const worksheetData = await this.getWorksheetBuffer()
+			if(isDownload){
+				await transformUniverToExcel({
+					snapshot: worksheetData,
+					mode: "buffer",
+					fileName: fileName || `${this.fileName || 'export'}_${new Date().getTime()}.xlsx`,
+					success: () => {
+						console.log('[UniverRenderer] 文件导出成功')
+					},
+					error: (err) => {
+						console.error('[UniverRenderer] 导出失败:', err)
+						throw err
+					}
+				})
+			}
 		} catch (error) {
 			console.error('[UniverRenderer] 导出文件失败:', error)
 			throw error
@@ -876,7 +889,7 @@ export class UniverRenderer {
 				throw new Error('无法获取工作簿数据')
 			}
 			// 使用完整的 ExcelJS 实现导出
-			const buffer = await exportUniverToExcel(snapshot)
+			const buffer = await jsonToBufferInExcel(snapshot)
 			return buffer
 		} catch (error) {
 			console.error('[UniverRenderer] 导出文件失败:', error)
@@ -885,7 +898,8 @@ export class UniverRenderer {
 	}
 
 	/** 导出 Docx 文件 - 使用 docx 库实现 */
-	public async exportToDocx(fileName?: string): Promise<void> {
+	public async exportToDocx(config: ExportConfigType): Promise<void> {
+		const { mode, fileName } = config
 		try {
 			// 获取当前文档数据
 			const docData = this.getDocxData()
@@ -914,7 +928,7 @@ export class UniverRenderer {
 	}
 
 	/** 动态设置模式 - 在 readonly 和 edit 之间切换 */
-	public setMode(mode: 'readonly' | 'edit'): void {
+	public setMode(mode: ComponentMode): void {
 		if (!this.univer) {
 			console.warn('[UniverRenderer] Univer 实例不存在，无法设置模式')
 			return
@@ -928,7 +942,7 @@ export class UniverRenderer {
 			const injector = this.univer.__getInjector()
 			const permissionService = injector.get(IPermissionService)
 
-			if (mode === 'readonly') {
+			if (mode === componentModeMap.readonly) {
 				// 切换到只读模式
 				console.log('[UniverRenderer] 切换到只读模式')
 				this.setReadonlyMode(permissionService)

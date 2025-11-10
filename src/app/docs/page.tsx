@@ -28,7 +28,7 @@ export default function DocsPage() {
     }else{
       fetch('/test.docx').then(res => res.arrayBuffer()).then(data => {
         const blob = new Blob([data], )
-        setPreviewData(new File([blob], 'test.docx'))
+        setPreviewData(new File([blob], 'test.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document;charset=UTF-8' }))
         setIsLoading(false)
       })
     }
